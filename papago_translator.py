@@ -100,7 +100,8 @@ def main(args):
     
     n = len(corpus)//divider
 
-    corpus_part = corpus[n*part:n*(part+1)]
+    corpus_part = deepcopy(corpus[n*part:n*(part+1)])
+    check_corpus = deepcopy(corpus[n*part:n*(part+1)])
 
     corpus_part, res_dict = preprocessing(kr_json_dir, corpus_part, size)
 
