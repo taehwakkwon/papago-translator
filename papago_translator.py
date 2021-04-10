@@ -93,10 +93,10 @@ def main(args):
     cpath = args.path
     divider = args.divider
     part = args.part
-    en_json_dir = args.en_json_dir
+    en_txt_dir = args.en_txt_dir
     kr_json_dir = args.kr_json_dir
 
-    corpus = load_text(en_json_dir)
+    corpus = load_text(en_txt_dir)
     
     n = len(corpus)//divider
 
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parsers = []
 
     for stgs in settings:
-        tmp.path, tmp.divider, tmp.part, tmp.en_json_dir, tmp.kr_json_dir = stgs
+        tmp.path, tmp.divider, tmp.part, tmp.en_txt_dir, tmp.kr_json_dir = stgs
         parsers.append(deepcopy(tmp))
 
     # main(parsers[0])
