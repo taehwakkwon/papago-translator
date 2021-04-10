@@ -154,10 +154,10 @@ if __name__ == "__main__":
                         default=int(0))
         
     parser.add_argument('--en_txt_dir', type=str, help='directory of english json file',
-                        default='captions_train2017.json')
+                        default='english.txt')
 
     parser.add_argument('--kr_json_dir', type=str, help='directory of translated json file to save',
-                        default='captions_train2017_kr.json')
+                        default='en2kr.json')
     
     args = parser.parse_args()
     main(args)
@@ -186,5 +186,4 @@ if __name__ == "__main__":
     
     pool = Pool(8)
     pool.map(main, parsers)
-
 '''
