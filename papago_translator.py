@@ -68,10 +68,10 @@ def preprocessing(kr_json_dir, corpus_part, size):
         kr_json_file = load_json(kr_json_dir)
 
         for idx, cps in enumerate(corpus_part):
-            if cps in kr_json_file:
+            if cps.strip() in kr_json_file:
                 continue
             else:
-                corpus_not_completed.append(cps)
+                corpus_not_completed.append(cps.strip())
 
         print(f'you have left {len(corpus_not_completed)} of {len(corpus_part)}')
         res_dict = kr_json_file
@@ -80,11 +80,11 @@ def preprocessing(kr_json_dir, corpus_part, size):
         corpus_not_completed = deepcopy(corpus_part)
 
     corpus_part = []
-    for i in tqdm(range(0, len(corpus_not_completed)-size, size)):
+    for i in tqdm(range(0, len(corpus_not_completed)-size+1, size)):
         tmp = ''
         for j in range(size):
             tmp += corpus_not_completed[i+j].strip() + '\n'
-        corpus_part.append(tmp[:-2])   #erase latest \n
+        corpus_part.append(tmp[:].strip())   #erase latest \n
     return corpus_part, res_dict
 
 
@@ -102,9 +102,8 @@ def main(args):
 
     corpus_part = deepcopy(corpus[n*part:n*(part+1)])
     check_corpus = deepcopy(corpus[n*part:n*(part+1)])
-
+    
     corpus_part, res_dict = preprocessing(kr_json_dir, corpus_part, size)
-
     result = ''
     prev_result = ''
     for idx, line in tqdm(enumerate(corpus_part)): #
@@ -114,12 +113,11 @@ def main(args):
 
         time_delay = 2
         
-        while result == prev_result or len(result.split('\n')) != size :
+        while result == prev_result or (len(result.split('\n')) != size and all(map(lambda x:len(x) > 3, result.split('\n')))):
             if time_delay > 3:
                 print(time_delay, result.split('\n'), line.split('\n'), sep='\n', end='\n\n')
 
             result = en2kr(line, driver, time_delay, res_dict)
-
             time_delay += 1
 
         prev_result = result
@@ -132,12 +130,14 @@ def main(args):
     cnt = 0
     kr_json_file = load_json(kr_json_dir)
     for idx, cps in enumerate(check_corpus):
-        if cps not in kr_json_file:
+        if cps.strip() not in kr_json_file:
+            print(cps.strip())
             cnt += 1
-    if cnt == 0:
+    if cnt == 0 or len(kr_json_file) == n:
         print('translation completed')
     else:
         print(f'you have {cnt} sentences that are not translated')
+        return main(args)
 
 
 if __name__ == "__main__":
@@ -165,7 +165,6 @@ if __name__ == "__main__":
     
 '''
     tmp = deepcopy(args)
-
     settings = [
         ['chromedriver', 8, 0, 'english.txt', 'en2kr_part0.json'],
         ['chromedriver', 8, 1, 'english.txt', 'en2kr_part1.json'],
@@ -176,13 +175,10 @@ if __name__ == "__main__":
         ['chromedriver', 8, 6, 'english.txt', 'en2kr_part6.json'],
         ['chromedriver', 8, 7, 'english.txt', 'en2kr_part7.json'],
         ]
-
     parsers = []
-
     for stgs in settings:
         tmp.path, tmp.divider, tmp.part, tmp.en_txt_dir, tmp.kr_json_dir = stgs
         parsers.append(deepcopy(tmp))
-
     # main(parsers[0])
     
     pool = Pool(8)
