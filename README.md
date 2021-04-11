@@ -12,7 +12,7 @@ Therefore, I made this program which helps you to translate tons of english sent
 
 
 
-This programs should be run in linux os. (If you set path option(input chromedriver path) you can use it window too)
+I made this program on linux os. If you set path options to your chromedriver path, you can make this code run.
 
 
 
@@ -51,12 +51,6 @@ English file that you want to translate should following these rules
 
 So, you could run this program with this code.
 
-`python papago_translator.py --path <chromedriver path> --size <size of translate at once unit(\n)> --en_txt_dir <text dir you want to translate> --kr_json_dir <translated file dir>`
-
-And I also divider and part options. These options are for multiprocessing. Divide one english file to 'divider' and take 'part' number. Those are for the fast translation.
-
-
-
-[0,~~,100, ~~200, ~~300] -> `--divider 3 --part 0` these options take 0~100 sentences. 
+`python papago_translator.py --english_dir train.txt --kr_json_dir translated.json --multiprocessor 8`
 
 Thanks😁
