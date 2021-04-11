@@ -57,6 +57,9 @@ class Translator(object):
     def translate(self):
         pool = Pool(self.multiprocessor)
         pool.starmap(self._translate, zip(range(self.multiprocessor), repeat(self.translated)))
+        pool.close()
+        pool.join()
+
         self.save_json(self.korean_dir, self.translated._getvalue())
         print('file translation completed')
 
