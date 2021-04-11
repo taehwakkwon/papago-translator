@@ -1,183 +1,141 @@
 from selenium import webdriver
 from tqdm import tqdm
 
-import time, json, argparse, sys, os
+from math import ceil
+import time, json, os, argparse
 from copy import deepcopy
 from multiprocessing import Pool
-from itertools import chain
 from collections import OrderedDict
 
-def load_json(json_dir):
-    with open(json_dir, encoding='UTF8') as f:
-        json_file = json.load(f)
-    return json_file
-
-
-def save_json(save_dir, result_dict):
-    with open(save_dir,'w', encoding='UTF8') as f:
-        json.dump(result_dict, f, ensure_ascii=False)
-
-
-def load_text(text_dir):
-    with open(text_dir, encoding='UTF8') as f:
-        text_file = f.readlines()
-    return text_file
-
-
-def en2kr(text, driver, time_delay, res_dict):
-
-    input_box = driver.find_element_by_css_selector('#sourceEditArea textarea')
-    
-    input_box.clear(); input_box.clear(); input_box.clear(); input_box.clear(); 
-    
-    input_box.send_keys(text)
-    driver.find_element_by_css_selector('#btnTranslate').click()
-
-    time.sleep(time_delay)
-    
-    result = str(driver.find_element_by_css_selector("#txtTarget").text)
-
-    input_box.clear(); input_box.clear(); input_box.clear(); input_box.clear(); 
-    return result
-
-
-def init_driver(cpath, linux=True):
-    options = webdriver.ChromeOptions()    
-    options.add_argument('headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-
-    options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.3163.100 Safari/537.36")
-
-    driver = webdriver.Chrome(executable_path=cpath, chrome_options=options)
-
-    driver.implicitly_wait(15)
-    driver.get('https://papago.naver.com/')
-
-    return driver
-
-
-def preprocessing(kr_json_dir, corpus_part, size):
-
-    res_dict = OrderedDict()
-    if os.path.isfile(kr_json_dir):
-        print(f'You have file of {kr_json_dir}')
-
-        corpus_not_completed = []
+class Translator(object):
+    def __init__(self, english_dir, korean_dir, multiprocessor=1, path='chromedriver'):
+        self.english_dir = english_dir
+        self.korean_dir = korean_dir
+        self.multiprocessor = multiprocessor
+        self.cpath = path
+        self.translated = OrderedDict()
         
-        kr_json_file = load_json(kr_json_dir)
+        #Load not translated words
+        if os.path.isfile(korean_dir):
+            self.translated = self.load_json(korean_dir)
+            
+            tmp = self.load_text(english_dir)
+            corpus = []
+            for i in range(len(tmp)):
+                if tmp[i].strip() not in self.translated:
+                    corpus.append(tmp[i].strip())
+            self.n = len(corpus)
+            print(f'You got file of {korean_dir} \n{len(tmp) - len(corpus)} lines translated')
+            print(f'You have left {self.n} of total {len(tmp)}')
+        else:
+            corpus = self.load_text(english_dir)
+            self.n = len(corpus)
+            print(f'You have left {self.n}')        
 
-        for idx, cps in enumerate(corpus_part):
-            if cps.strip() in kr_json_file:
-                continue
-            else:
-                corpus_not_completed.append(cps.strip())
-
-        print(f'you have left {len(corpus_not_completed)} of {len(corpus_part)}')
-        res_dict = kr_json_file
-    else:
-        print(f'You have file nothing.\n Just start from the beginning!')
-        corpus_not_completed = deepcopy(corpus_part)
-
-    corpus_part = []
-    for i in tqdm(range(0, len(corpus_not_completed)-size+1, size)):
-        tmp = ''
-        for j in range(size):
-            tmp += corpus_not_completed[i+j].strip() + '\n'
-        corpus_part.append(tmp[:].strip())   #erase latest \n
-    return corpus_part, res_dict
-
-
-def main(args):
-    size = args.size
-    cpath = args.path
-    divider = args.divider
-    part = args.part
-    en_txt_dir = args.en_txt_dir
-    kr_json_dir = args.kr_json_dir
-
-    corpus = load_text(en_txt_dir)
-    
-    n = len(corpus)//divider
-
-    corpus_part = deepcopy(corpus[n*part:n*(part+1)])
-    check_corpus = deepcopy(corpus[n*part:n*(part+1)])
-    
-    corpus_part, res_dict = preprocessing(kr_json_dir, corpus_part, size)
-    result = ''
-    prev_result = ''
-    for idx, line in tqdm(enumerate(corpus_part)): #
-        if idx % 100 == 0:
-            driver = init_driver(cpath)
-            print('driver initialized')
-
-        time_delay = 2
+        self.parts = [deepcopy(corpus[ceil(self.n/multiprocessor)*i:ceil(self.n/multiprocessor)*(i+1)]) for i in range(self.multiprocessor)]
         
-        while result == prev_result or (len(result.split('\n')) != size and all(map(lambda x:len(x) > 3, result.split('\n')))):
-            if time_delay > 3:
-                print(time_delay, result.split('\n'), line.split('\n'), sep='\n', end='\n\n')
 
-            result = en2kr(line, driver, time_delay, res_dict)
-            time_delay += 1
+    def en2kr(self, sentence, driver, time_delay):
 
-        prev_result = result
-
-        for en, tstd in zip(line.split('\n'), result.split('\n')):
-            res_dict[en] = tstd
+        input_box = driver.find_element_by_css_selector('#sourceEditArea textarea')
         
-        save_json(kr_json_dir, res_dict)
+        input_box.clear(); input_box.clear(); input_box.clear(); input_box.clear(); 
+        
+        input_box.send_keys(sentence)
+        driver.find_element_by_css_selector('#btnTranslate').click()
 
-    cnt = 0
-    kr_json_file = load_json(kr_json_dir)
-    for idx, cps in enumerate(check_corpus):
-        if cps.strip() not in kr_json_file:
-            print(cps.strip())
-            cnt += 1
-    if cnt == 0 or len(kr_json_file) == n:
-        print('translation completed')
-    elif cnt < size:
-        print(f'you have {cnt} sentences that are not translated')
-    else:
-        print(f'you have {cnt} sentences that are not translated')
-        return main(args)
+        time.sleep(time_delay)
+        
+        result = str(driver.find_element_by_css_selector("#txtTarget").text)
+
+        input_box.clear(); input_box.clear(); input_box.clear(); input_box.clear(); 
+        return result
+
+    def translate(self):
+        pool = Pool(self.multiprocessor)
+        pool.map(self._translate, range(self.multiprocessor))
+
+    def _translate(self, corpus_number):
+        corpus = self.parts[corpus_number]
+
+        prev_result = result = ''
+
+        for idx, sentence in tqdm(enumerate(corpus)):
+            if idx % 100 == 0:
+                driver = self.init_driver(self.cpath)
+                print('driver initialized')
+            
+            time_delay = 2
+            while result == prev_result:
+                if time_delay > 3:
+                    print(time_delay, result.split('\n'), sentence.split('\n'), sep='\n', end='\n\n')
+                
+                result = self.en2kr(sentence, driver, time_delay)
+                time_delay += 1
+            
+            prev_result = result
+
+            for en, tstd in zip(sentence.split('\n'), result.split('\n')):
+                self.translated[en] = tstd
+            
+            self.save_json(self.korean_dir, self.translated)
+
+        if self.multiprocessor > 1:
+            print(f'processor {corpus_number} completed')
+        else:
+            print('translation completed')
+
+        return self.translated
+    
+    def load_json(self, json_dir):
+        with open(json_dir, encoding='UTF8') as f:
+            json_file = json.load(f)
+        print(f'{json_dir} loaded')
+        return json_file
+    
+    def save_json(self, save_dir, result_dict):
+        with open(save_dir,'w', encoding='UTF8') as f:
+            json.dump(result_dict, f, ensure_ascii=False)
+    
+    def load_text(self, text_dir):
+        with open(text_dir, encoding='UTF8') as f:
+            text_file = f.readlines()
+        print(f'{text_dir} loaded')
+        return text_file
+
+    def init_driver(self, cpath, linux=True):
+        options = webdriver.ChromeOptions()    
+        options.add_argument('headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+
+        options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
+
+        driver = webdriver.Chrome(executable_path=cpath, chrome_options=options)
+
+        driver.implicitly_wait(15)
+        driver.get('https://papago.naver.com/')
+
+        return driver
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Before get started you need to download chromedriver')
-    parser.add_argument('--path', type=str, help='type chromedriver\'s abs dir',
-                        default='chromedriver')
+    parser = argparse.ArgumentParser(description='Before get started you need read README')
 
-    parser.add_argument('--size', type=int, help='size of translate at once',
-                        default=int(10))
-    
-    parser.add_argument('--divider', type=int, help='divider size for parallel',
-                        default=int(1))
-
-    parser.add_argument('--part', type=int, help='part for parallel',
-                        default=int(0))
-        
-    parser.add_argument('--en_txt_dir', type=str, help='directory of english json file',
+    parser.add_argument('--english_dir', type=str, help='directory of english text file',
                         default='english.txt')
 
     parser.add_argument('--kr_json_dir', type=str, help='directory of translated json file to save',
-                        default='en2kr.json')
+                        default='translated.json')
     
+    parser.add_argument('--multiprocessor', type=int, help='multiprocessor number you want to use',
+                        default=int(1))                    
+
+    parser.add_argument('--path', type=str, help='type chromedriver\'s abs dir',
+                        default='chromedriver')                    
+
+
     args = parser.parse_args()
-    main(args)
     
-'''
-    tmp = deepcopy(args)
-    settings = [
-        ['chromedriver', 4, 0, 'english.txt', 'en2kr_part0.json'],
-        ['chromedriver', 4, 1, 'english.txt', 'en2kr_part1.json'],
-        ['chromedriver', 4, 2, 'english.txt', 'en2kr_part2.json'],
-        ['chromedriver', 4, 3, 'english.txt', 'en2kr_part3.json'],
-        ]
-    parsers = []
-    for stgs in settings:
-        tmp.path, tmp.divider, tmp.part, tmp.en_txt_dir, tmp.kr_json_dir = stgs
-        parsers.append(deepcopy(tmp))
-    
-    pool = Pool(4)
-    pool.map(main, parsers)
-'''
+    translator = Translator(args.english_dir, args.kr_json_dir, args.multiprocessor, args.path)
+    translator.translate()
