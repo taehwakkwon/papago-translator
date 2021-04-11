@@ -1,6 +1,8 @@
 ## Papago translator with selenium(en2kr)
 
-https://papago.naver.com/
+>  I utilizes this site to translate english to korean -> https://papago.naver.com/
+
+
 
 Naver supports papago API. However, the amount of text is limited which is so small.
 
@@ -10,7 +12,7 @@ Therefore, I made this program which helps you to translate tons of english sent
 
 
 
-This programs should be run in linux os.
+This programs should be run in linux os. (If you set path option(input chromedriver path) you can use it window too)
 
 
 
@@ -38,7 +40,7 @@ English file that you want to translate should following these rules
 
 - You could use this program on your own text file. Text file should be separated by \n.
 
-- A bunch of sentences **must not exceed 5000 characters**(cuz they does not support it. I recommend you to put it under 1500 characters)
+- A bunch of sentences **must not exceed 5000 characters**(becuase papago supports under 5000 characters. I recommend you to put it under 1500 characters)
 
   ```tex
   Hi, this is Taehwak ~~~~~~~~ \n -> this should not exceed 5000 characters
@@ -57,4 +59,4 @@ And I also divider and part options. These options are for multiprocessing. Divi
 
 [0,~~,100, ~~200, ~~300] -> `--divider 3 --part 0` these options take 0~100 sentences. 
 
-Have a great day😁
+Thanks😁
