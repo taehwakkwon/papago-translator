@@ -47,7 +47,7 @@ def init_driver(cpath, linux=True):
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
 
-    options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.3163.100 Safari/537.36")
 
     driver = webdriver.Chrome(executable_path=cpath, chrome_options=options)
 
@@ -135,6 +135,8 @@ def main(args):
             cnt += 1
     if cnt == 0 or len(kr_json_file) == n:
         print('translation completed')
+    elif cnt < size:
+        print(f'you have {cnt} sentences that are not translated')
     else:
         print(f'you have {cnt} sentences that are not translated')
         return main(args)
@@ -166,21 +168,16 @@ if __name__ == "__main__":
 '''
     tmp = deepcopy(args)
     settings = [
-        ['chromedriver', 8, 0, 'english.txt', 'en2kr_part0.json'],
-        ['chromedriver', 8, 1, 'english.txt', 'en2kr_part1.json'],
-        ['chromedriver', 8, 2, 'english.txt', 'en2kr_part2.json'],
-        ['chromedriver', 8, 3, 'english.txt', 'en2kr_part3.json'],
-        ['chromedriver', 8, 4, 'english.txt', 'en2kr_part4.json'],
-        ['chromedriver', 8, 5, 'english.txt', 'en2kr_part5.json'],
-        ['chromedriver', 8, 6, 'english.txt', 'en2kr_part6.json'],
-        ['chromedriver', 8, 7, 'english.txt', 'en2kr_part7.json'],
+        ['chromedriver', 4, 0, 'english.txt', 'en2kr_part0.json'],
+        ['chromedriver', 4, 1, 'english.txt', 'en2kr_part1.json'],
+        ['chromedriver', 4, 2, 'english.txt', 'en2kr_part2.json'],
+        ['chromedriver', 4, 3, 'english.txt', 'en2kr_part3.json'],
         ]
     parsers = []
     for stgs in settings:
         tmp.path, tmp.divider, tmp.part, tmp.en_txt_dir, tmp.kr_json_dir = stgs
         parsers.append(deepcopy(tmp))
-    # main(parsers[0])
     
-    pool = Pool(8)
+    pool = Pool(4)
     pool.map(main, parsers)
 '''
