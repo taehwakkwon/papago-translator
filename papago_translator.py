@@ -4,8 +4,11 @@ from tqdm import tqdm
 from math import ceil
 import time, json, os, argparse
 from copy import deepcopy
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
+
 from collections import OrderedDict
+from itertools import repeat
+
 
 class Translator(object):
     def __init__(self, english_dir, korean_dir, multiprocessor=1, path='chromedriver'):
@@ -13,11 +16,12 @@ class Translator(object):
         self.korean_dir = korean_dir
         self.multiprocessor = multiprocessor
         self.cpath = path
-        self.translated = OrderedDict()
+        manager = Manager()
+        self.translated = manager.dict()
         
         #Load not translated words
         if os.path.isfile(korean_dir):
-            self.translated = self.load_json(korean_dir)
+            self.translated = manager.dict(self.load_json(korean_dir))
             
             tmp = self.load_text(english_dir)
             corpus = []
@@ -33,7 +37,6 @@ class Translator(object):
             print(f'You have left {self.n}')        
 
         self.parts = [deepcopy(corpus[ceil(self.n/multiprocessor)*i:ceil(self.n/multiprocessor)*(i+1)]) for i in range(self.multiprocessor)]
-        
 
     def en2kr(self, sentence, driver, time_delay):
 
@@ -53,9 +56,11 @@ class Translator(object):
 
     def translate(self):
         pool = Pool(self.multiprocessor)
-        pool.map(self._translate, range(self.multiprocessor))
+        pool.starmap(self._translate, zip(range(self.multiprocessor), repeat(self.translated)))
+        self.save_json(self.korean_dir, self.translated._getvalue())
+        print('file translation completed')
 
-    def _translate(self, corpus_number):
+    def _translate(self, corpus_number, translated):
         corpus = self.parts[corpus_number]
 
         prev_result = result = ''
@@ -66,7 +71,7 @@ class Translator(object):
                 print('driver initialized')
             
             time_delay = 2
-            while result == prev_result:
+            while result == prev_result and time_delay < 10:
                 if time_delay > 3:
                     print(time_delay, result.split('\n'), sentence.split('\n'), sep='\n', end='\n\n')
                 
@@ -76,16 +81,13 @@ class Translator(object):
             prev_result = result
 
             for en, tstd in zip(sentence.split('\n'), result.split('\n')):
-                self.translated[en] = tstd
+                translated[en.strip()] = tstd.strip()
             
-            self.save_json(self.korean_dir, self.translated)
-
         if self.multiprocessor > 1:
             print(f'processor {corpus_number} completed')
         else:
             print('translation completed')
-
-        return self.translated
+        return translated
     
     def load_json(self, json_dir):
         with open(json_dir, encoding='UTF8') as f:
@@ -103,7 +105,9 @@ class Translator(object):
         print(f'{text_dir} loaded')
         return text_file
 
-    def init_driver(self, cpath, linux=True):
+    def init_driver(self, cpath=None):
+        if cpath == None:
+            cpath = self.cpath
         options = webdriver.ChromeOptions()    
         options.add_argument('headless')
         options.add_argument('--no-sandbox')
@@ -138,4 +142,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     translator = Translator(args.english_dir, args.kr_json_dir, args.multiprocessor, args.path)
+
     translator.translate()
