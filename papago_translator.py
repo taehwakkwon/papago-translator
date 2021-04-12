@@ -69,22 +69,27 @@ class Translator(object):
         prev_result = result = ''
 
         for idx, sentence in tqdm(enumerate(corpus)):
-            if idx % 100 == 0:
+            if idx % 500 == 0:
                 driver = self.init_driver(self.cpath)
                 print('driver initialized')
+                if corpus_number == 0:
+                    self.save_json(self.korean_dir, self.translated._getvalue())
             
+            sentence = sentence.strip()
             time_delay = 2
-            while result == prev_result and time_delay < 10:
+            while result == prev_result and sentence not in translated and time_delay < 10:
                 if time_delay > 3:
-                    print(time_delay, result.split('\n'), sentence.split('\n'), sep='\n', end='\n\n')
+                    print(time_delay)
+                    print(prev_sentence, sentence)
+                    print(prev_result, result)
                 
                 result = self.en2kr(sentence, driver, time_delay)
                 time_delay += 1
             
-            prev_result = result
-
-            for en, tstd in zip(sentence.split('\n'), result.split('\n')):
-                translated[en.strip()] = tstd.strip()
+            prev_result = deepcopy(result)
+            prev_sentence = deepcopy(sentence)
+            
+            translated[sentence] = result.strip()
             
         if self.multiprocessor > 1:
             print(f'processor {corpus_number} completed')
