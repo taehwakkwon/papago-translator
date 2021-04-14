@@ -164,6 +164,3 @@ if __name__ == "__main__":
     translator = Translator(args.english_dir, args.kr_json_dir, args.multiprocessor, args.path)
 
     translator.translate()
-
-    #python papago_translator.py --english_dir train.txt --kr_json_dir train.json --multiprocessor 16
-    #python papago_translator.py --english_dir val.txt --kr_json_dir val.json --multiprocessor 16
