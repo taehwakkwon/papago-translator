@@ -1,6 +1,7 @@
 from selenium import webdriver
 from tqdm import tqdm
 
+import numpy as np
 from math import ceil
 import time, json, os, argparse
 from copy import deepcopy
@@ -34,9 +35,10 @@ class Translator(object):
         else:
             corpus = self.load_text(english_dir)
             self.n = len(corpus)
-            print(f'You have left {self.n}')        
+            print(f'You have left {self.n}')    
 
-        self.parts = [deepcopy(corpus[ceil(self.n/multiprocessor)*i:ceil(self.n/multiprocessor)*(i+1)]) for i in range(self.multiprocessor)]
+
+        self.parts = np.array_split(corpus, self.multiprocessor)
 
     def en2kr(self, sentence, driver, time_delay):
 
@@ -55,28 +57,33 @@ class Translator(object):
         return result
 
     def translate(self):
-        pool = Pool(self.multiprocessor)
-        pool.starmap(self._translate, zip(range(self.multiprocessor), repeat(self.translated)))
-        pool.close()
-        pool.join()
+        if self.n != 0:
+            pool = Pool(self.multiprocessor)
+            pool.starmap(self._translate, zip(self.parts, repeat(self.translated)))
+            pool.close()
+            pool.join()
 
-        self.save_json(self.korean_dir, self.translated._getvalue())
+            self.save_json(self.korean_dir, self.translated._getvalue())
         print('file translation completed')
+        os.system('pkill chromium')
+        os.system('pkill chrome')
+        return self.translated._getvalue()
 
-    def _translate(self, corpus_number, translated):
-        corpus = self.parts[corpus_number]
+    def _translate(self, corpus, translated):
+
+        not_translated = []
 
         prev_result = result = ''
 
         for idx, sentence in tqdm(enumerate(corpus)):
             if idx % 500 == 0:
-                driver = self.init_driver(self.cpath)
+                driver = self.init_driver()
                 print('driver initialized')
-                if corpus_number == 0:
-                    self.save_json(self.korean_dir, self.translated._getvalue())
+                self.save_json(self.korean_dir, self.translated._getvalue())
             
             sentence = sentence.strip()
             time_delay = 2
+            flag = False
             while result == prev_result and sentence not in translated and time_delay < 10:
                 if time_delay > 3:
                     print(time_delay)
@@ -84,17 +91,24 @@ class Translator(object):
                     print(prev_result, result)
                 
                 result = self.en2kr(sentence, driver, time_delay)
+                
                 time_delay += 1
             
+            # when sentence is not translated  
+            if result == '':
+                print(f'"{sentence}" \t fail to translate')
+                not_translated.append(sentence)
+                continue
+
             prev_result = deepcopy(result)
             prev_sentence = deepcopy(sentence)
             
             translated[sentence] = result.strip()
             
-        if self.multiprocessor > 1:
-            print(f'processor {corpus_number} completed')
-        else:
-            print('translation completed')
+        if not_translated != []:
+            print(f'There are some sentences not translated : {not_translated}')
+            return self._translate(self, not_translated, translated)
+            
         return translated
     
     def load_json(self, json_dir):
@@ -117,13 +131,12 @@ class Translator(object):
         if cpath == None:
             cpath = self.cpath
         options = webdriver.ChromeOptions()    
-        options.add_argument('headless')
+        options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-
-        options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
-
-        driver = webdriver.Chrome(executable_path=cpath, chrome_options=options)
+        options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.3538.102 Safari/537.36")
+                                
+        driver = webdriver.Chrome(executable_path=cpath, options=options)
 
         driver.implicitly_wait(15)
         driver.get('https://papago.naver.com/')
@@ -146,9 +159,11 @@ if __name__ == "__main__":
     parser.add_argument('--path', type=str, help='type chromedriver\'s abs dir',
                         default='chromedriver')                    
 
-
     args = parser.parse_args()
     
     translator = Translator(args.english_dir, args.kr_json_dir, args.multiprocessor, args.path)
 
     translator.translate()
+
+    #python papago_translator.py --english_dir train.txt --kr_json_dir train.json --multiprocessor 16
+    #python papago_translator.py --english_dir val.txt --kr_json_dir val.json --multiprocessor 16
