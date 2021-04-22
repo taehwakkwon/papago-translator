@@ -1,14 +1,14 @@
-**## Papago translator with selenium(en2kr)**
+## Papago translator with selenium(en2kr)
 
 
 
 *> I utilizes this site to translate english to korean -> https://papago.naver.com/*
 
-**----------------updated------------------**
+**----------------updated----------------**
 
 > Languages can be selected
 
-**--------------------------------------------**
+**---------------------------------------------**
 
 
 
@@ -34,23 +34,13 @@ Before get started run this following code on your shell.
 
 
 
-
-
-\```shell
-
-git clone https://github.com/taehwakkwon/papago-translator.git
-
-cd papago-translator
-
-pip install -r requirements.txt
-
-apt-get update
-
-apt install chromium-chromedriver
-
-\```
-
-
+```shell
+$git clone https://github.com/taehwakkwon/papago-translator.git
+$cd papago-translator
+$pip install -r requirements.txt
+$apt-get update
+$apt install chromium-chromedriver
+```
 
 
 
