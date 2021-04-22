@@ -81,7 +81,7 @@ So, you could run this program with this code.
 
 
 ```
-python papago_translator.py --text_file english.txt --sk en --tk kr --complete_file translated.json --multiprocessor 8 --path chromedriver
+python papago_translator.py --text_file english.txt --complete_file translated.json --sk en --tk kr --complete_file translated.json --multiprocessor 8 --path chromedriver
 ```
 
 
