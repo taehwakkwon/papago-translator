@@ -13,9 +13,9 @@ from itertools import repeat
 
 class Translator(object):
     '''
-    언어감지 : auto, 한국어(Korean) : ko, 영어(english) : ko,  일본어(Japanese) : ja, 중국어(Chinese(Simplified)) : zh-CN
-    중국어(Chinese(Traditional)) : zh-TW, 스페인어(Espanyol) : es, 프랑스어(French) : fr, 독일어(German) : de, 러시아어(Russian) : ru
-    포르투갈어(Portuguese) : pt, 이탈리아어(Italian) : it, 베트남어(Vietnamese) : vi, 태국어(Thai) : th, 인도네시아어(Indonesian) : id
+    언어감지 : auto, 한국어(Korean) : ko, 영어(english) : en,  일본어(Japanese) : ja, 중국어(Chinese(Simplified)) : zh-CN
+    중국어(Chinese(Traditional)) : zh-TW, 스페인어(Espanyol) : es, 프랑스어(French) : fr, 독일어(German) : de, 러시아어(Russian) : ru,
+    포르투갈어(Portuguese) : pt, 이탈리아어(Italian) : it, 베트남어(Vietnamese) : vi, 태국어(Thai) : th, 인도네시아어(Indonesian) : id,
     힌디어(Hindi) : hi
     '''
     def __init__(self, text_file, translated_file, sk='en', tk='kr', multiprocessor=1, path='chromedriver'):
