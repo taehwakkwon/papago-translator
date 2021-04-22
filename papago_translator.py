@@ -12,28 +12,36 @@ from itertools import repeat
 
 
 class Translator(object):
-    def __init__(self, english_dir, korean_dir, multiprocessor=1, path='chromedriver'):
-        self.english_dir = english_dir
-        self.korean_dir = korean_dir
+    '''
+    언어감지 : auto, 한국어(Korean) : ko, 영어(english) : ko,  일본어(Japanese) : ja, 중국어(Chinese(Simplified)) : zh-CN
+    중국어(Chinese(Traditional)) : zh-TW, 스페인어(Espanyol) : es, 프랑스어(French) : fr, 독일어(German) : de, 러시아어(Russian) : ru
+    포르투갈어(Portuguese) : pt, 이탈리아어(Italian) : it, 베트남어(Vietnamese) : vi, 태국어(Thai) : th, 인도네시아어(Indonesian) : id
+    힌디어(Hindi) : hi
+    '''
+    def __init__(self, text_file, translated_file, sk='en', tk='kr', multiprocessor=1, path='chromedriver'):
+        self.text_file = text_file
+        self.translated_file = translated_file
+        self.sk = sk
+        self.tk = tk
         self.multiprocessor = multiprocessor
         self.cpath = path
         manager = Manager()
         self.translated = manager.dict()
         
         #Load not translated words
-        if os.path.isfile(korean_dir):
-            self.translated = manager.dict(self.load_json(korean_dir))
+        if os.path.isfile(translated_file):
+            self.translated = manager.dict(self.load_json(translated_file))
             
-            tmp = self.load_text(english_dir)
+            tmp = self.load_text(text_file)
             corpus = []
             for i in range(len(tmp)):
                 if tmp[i].strip() not in self.translated:
                     corpus.append(tmp[i].strip())
             self.n = len(corpus)
-            print(f'You got file of {korean_dir} \n{len(tmp) - len(corpus)} lines translated')
+            print(f'You got file of {translated_file} \n{len(tmp) - len(corpus)} lines translated')
             print(f'You have left {self.n} of total {len(tmp)}')
         else:
-            corpus = self.load_text(english_dir)
+            corpus = self.load_text(text_file)
             self.n = len(corpus)
             print(f'You have left {self.n}')    
 
@@ -63,7 +71,7 @@ class Translator(object):
             pool.close()
             pool.join()
 
-            self.save_json(self.korean_dir, self.translated._getvalue())
+            self.save_json(self.translated_file, self.translated._getvalue())
         print('file translation completed')
         os.system('pkill chromium')
         os.system('pkill chrome')
@@ -79,7 +87,7 @@ class Translator(object):
             if idx % 500 == 0:
                 driver = self.init_driver()
                 print('driver initialized')
-                self.save_json(self.korean_dir, self.translated._getvalue())
+                self.save_json(self.translated_file, self.translated._getvalue())
             
             sentence = sentence.strip()
             time_delay = 2
@@ -139,7 +147,7 @@ class Translator(object):
         driver = webdriver.Chrome(executable_path=cpath, options=options)
 
         driver.implicitly_wait(15)
-        driver.get('https://papago.naver.com/')
+        driver.get(f'https://papago.naver.com/?sk={self.sk}&tk={self.tk}')
 
         return driver
 
@@ -147,20 +155,26 @@ class Translator(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Before get started you need read README')
 
-    parser.add_argument('--english_dir', type=str, help='directory of english text file',
+    parser.add_argument('--text_file', type=str, help='directory of text file to translate',
                         default='english.txt')
 
-    parser.add_argument('--kr_json_dir', type=str, help='directory of translated json file to save',
+    parser.add_argument('--complete_file', type=str, help='directory of translated json file to save',
                         default='translated.json')
     
+    parser.add_argument('--sk', type=str, help='language to translate',
+                        default='en')     
+    
+    parser.add_argument('--tk', type=str, help='translated language',
+                        default='ko')     
+
     parser.add_argument('--multiprocessor', type=int, help='multiprocessor number you want to use',
                         default=int(1))                    
 
     parser.add_argument('--path', type=str, help='type chromedriver\'s abs dir',
-                        default='chromedriver')                    
+                        default='chromedriver')     
 
     args = parser.parse_args()
     
-    translator = Translator(args.english_dir, args.kr_json_dir, args.multiprocessor, args.path)
+    translator = Translator(args.text_file, args.complete_file, args.sk, args.tk, args.multiprocessor, args.path)
 
     translator.translate()
