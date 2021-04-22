@@ -4,11 +4,11 @@
 
 *> I utilizes this site to translate english to korean -> https://papago.naver.com/*
 
-**----------------updated----------------**
+**----------------updated---------------------**
 
 > Languages can be selected
 
-**---------------------------------------------**
+**--------------------------------------------**
 
 
 
